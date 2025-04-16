@@ -1,4 +1,29 @@
+# Python virtual environment
+venv/
+env/
 .env
-*.json
+
+# Cache and compiled files
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Audio clips (optional, depends if you want to track audio files)
 audio_clips/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Deprecated folder
+deprecated/
+deprecated/*
