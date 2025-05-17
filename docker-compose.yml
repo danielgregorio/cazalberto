@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  cazalberto:
+    build: .
+    container_name: cazalberto-bot
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+    volumes:
+      - ./audio_clips:/app/audio_clips
+      - ./wow-music:/app/wow-music
+      - ./commands.json:/app/commands.json
+      - ./playlists.json:/app/playlists.json
+    restart: unless-stopped
