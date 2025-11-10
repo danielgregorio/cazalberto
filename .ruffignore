@@ -1,0 +1,11 @@
+# Ruff ignore file
+# Ignora avisos não-críticos para desenvolvimento
+
+# Arquivos de teste
+tests/
+
+# Migrations (quando houver)
+migrations/
+
+# Scripts utilitários
+scripts/
