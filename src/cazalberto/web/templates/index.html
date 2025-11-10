@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div x-data="dashboard()" x-init="init()">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8">
+        <i class="fas fa-tachometer-alt text-indigo-600 mr-3"></i>
+        Dashboard
+    </h1>
+
+    <!-- Cards de Estatísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Card Áudios -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm uppercase font-semibold">Total de Áudios</p>
+                    <p class="text-4xl font-bold text-indigo-600 mt-2" x-text="stats.total_audios">0</p>
+                </div>
+                <div class="bg-indigo-100 rounded-full p-4">
+                    <i class="fas fa-music text-indigo-600 text-3xl"></i>
+                </div>
+            </div>
+            <a href="/audios" class="text-indigo-600 hover:underline mt-4 inline-block">
+                Gerenciar áudios →
+            </a>
+        </div>
+
+        <!-- Card Playlists -->
+        <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm uppercase font-semibold">Total de Playlists</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2" x-text="stats.total_playlists">0</p>
+                </div>
+                <div class="bg-green-100 rounded-full p-4">
+                    <i class="fas fa-list text-green-600 text-3xl"></i>
+                </div>
+            </div>
+            <a href="/playlists" class="text-green-600 hover:underline mt-4 inline-block">
+                Gerenciar playlists →
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+            Sobre o Cazalberto
+        </h2>
+
+        <div class="prose max-w-none">
+            <p class="text-gray-700 mb-4">
+                O Cazalberto é um bot Discord moderno especializado em reprodução de áudio e entretenimento.
+                Este painel permite gerenciar áudios, playlists e configurações sem precisar usar comandos no Discord.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <i class="fas fa-cloud-upload-alt text-blue-600 text-2xl mb-2"></i>
+                    <h3 class="font-bold text-gray-800 mb-1">Upload de Áudios</h3>
+                    <p class="text-sm text-gray-600">Faça upload de arquivos MP3, WAV, OGG diretamente pelo painel</p>
+                </div>
+
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <i class="fas fa-database text-purple-600 text-2xl mb-2"></i>
+                    <h3 class="font-bold text-gray-800 mb-1">Banco SQLite</h3>
+                    <p class="text-sm text-gray-600">Dados persistentes e organizados em banco relacional moderno</p>
+                </div>
+
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <i class="fas fa-code text-green-600 text-2xl mb-2"></i>
+                    <h3 class="font-bold text-gray-800 mb-1">API REST</h3>
+                    <p class="text-sm text-gray-600">API completa disponível em /api/docs para integração</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function dashboard() {
+    return {
+        stats: {
+            total_audios: 0,
+            total_playlists: 0
+        },
+
+        async init() {
+            await this.loadStats();
+        },
+
+        async loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                this.stats = await response.json();
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

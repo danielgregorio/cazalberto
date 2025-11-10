@@ -1,6 +1,7 @@
 # Docker
 Dockerfile
-docker-compose.yml
+docker/
+docker-compose*.yml
 .dockerignore
 
 # Python
@@ -9,19 +10,40 @@ __pycache__/
 *$py.class
 venv/
 env/
+.venv/
 .env
 .python-version
+*.egg-info/
+dist/
+build/
+
+# Poetry
+poetry.lock
 
 # Logs
 *.log
+logs/
+
+# Database (será montado via volume)
+data/
+*.db
+*.sqlite
 
 # Backup files
 backup*/
 *_backup*
 
-# Áudio files (opcional, comente essas linhas se quiser incluir áudios no build)
-# audio_clips/
-# wow-music/
+# Áudio files (será montado via volume)
+audio_clips/
+wow-ost/
+wow-music/
+
+# Tests
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
 
 # IDE files
 .vscode/
@@ -38,6 +60,15 @@ Thumbs.db
 .git/
 .github/
 .gitignore
+.pre-commit-config.yaml
+
+# Documentation
+*.md
+README*
+CONTRIBUTING*
+DOCKER*
+LICENSE
 
 # Misc
 commit-msg.txt
+commands_backup.json

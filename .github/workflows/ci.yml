@@ -1,0 +1,154 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, claude/**]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-type-check:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run Black (check only)
+        run: poetry run black --check src/ tests/
+
+      - name: Run isort (check only)
+        run: poetry run isort --check src/ tests/
+
+      - name: Run Ruff
+        run: poetry run ruff check src/ tests/
+
+      - name: Run mypy
+        run: poetry run mypy src/
+        continue-on-error: true  # Não falhar build por erros de tipo (por enquanto)
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest \
+            --cov=src/cazalberto \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-report=html \
+            -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+      - name: Archive coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint-and-type-check, test]
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build bot image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/bot.Dockerfile
+          push: false
+          tags: cazalberto-bot:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/web.Dockerfile
+          push: false
+          tags: cazalberto-web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true

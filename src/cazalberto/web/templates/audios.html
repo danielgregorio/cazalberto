@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div x-data="audioManager()" x-init="init()">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800">
+            <i class="fas fa-music text-indigo-600 mr-3"></i>
+            Gerenciar Áudios
+        </h1>
+
+        <button @click="showAddModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg shadow-md transition">
+            <i class="fas fa-plus mr-2"></i>
+            Adicionar Áudio
+        </button>
+    </div>
+
+    <!-- Busca -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div class="flex gap-4">
+            <input
+                x-model="searchQuery"
+                @input.debounce.500ms="loadAudios()"
+                type="text"
+                placeholder="Buscar por comando..."
+                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+        </div>
+    </div>
+
+    <!-- Tabela de Áudios -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comando</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arquivo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reproduções</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <template x-for="audio in audios" :key="audio.id">
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium text-gray-900" x-text="audio.command"></span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-gray-500" x-text="audio.file_path"></span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <i class="fas fa-play mr-1"></i>
+                                <span x-text="audio.play_count"></span>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button @click="deleteAudio(audio.id)" class="text-red-600 hover:text-red-900 transition">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+
+                <!-- Empty state -->
+                <tr x-show="audios.length === 0">
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                        <i class="fas fa-music text-4xl mb-2"></i>
+                        <p>Nenhum áudio encontrado</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Adicionar Áudio -->
+    <div x-show="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showAddModal = false">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Adicionar Novo Áudio</h2>
+
+            <form @submit.prevent="addAudio()">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Comando</label>
+                    <input
+                        x-model="newAudio.command"
+                        type="text"
+                        required
+                        placeholder="Ex: ola"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Caminho do Arquivo</label>
+                    <input
+                        x-model="newAudio.file_path"
+                        type="text"
+                        required
+                        placeholder="audio_clips/arquivo.mp3"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Ou use o upload abaixo</p>
+                </div>
+
+                <div class="flex gap-4">
+                    <button
+                        type="button"
+                        @click="showAddModal = false"
+                        class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition"
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Adicionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function audioManager() {
+    return {
+        audios: [],
+        searchQuery: '',
+        showAddModal: false,
+        newAudio: {
+            command: '',
+            file_path: '',
+            guild_id: 0
+        },
+
+        async init() {
+            await this.loadAudios();
+        },
+
+        async loadAudios() {
+            try {
+                const url = this.searchQuery
+                    ? `/api/audios/search?q=${encodeURIComponent(this.searchQuery)}`
+                    : '/api/audios?guild_id=0';
+
+                const response = await fetch(url);
+                this.audios = await response.json();
+            } catch (error) {
+                console.error('Erro ao carregar áudios:', error);
+                alert('Erro ao carregar áudios');
+            }
+        },
+
+        async addAudio() {
+            try {
+                const response = await fetch('/api/audios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.newAudio)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert(error.detail || 'Erro ao adicionar áudio');
+                    return;
+                }
+
+                this.newAudio = { command: '', file_path: '', guild_id: 0 };
+                this.showAddModal = false;
+                await this.loadAudios();
+                alert('✓ Áudio adicionado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao adicionar áudio:', error);
+                alert('Erro ao adicionar áudio');
+            }
+        },
+
+        async deleteAudio(id) {
+            if (!confirm('Tem certeza que deseja excluir este áudio?')) return;
+
+            try {
+                const response = await fetch(`/api/audios/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await this.loadAudios();
+                    alert('✓ Áudio excluído com sucesso!');
+                } else {
+                    alert('Erro ao excluir áudio');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir áudio:', error);
+                alert('Erro ao excluir áudio');
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

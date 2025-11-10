@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-xl font-bold flex items-center">
+                        <i class="fas fa-robot mr-2"></i>
+                        Cazalberto Control Panel
+                    </a>
+
+                    <div class="hidden md:flex space-x-4">
+                        <a href="/" class="hover:bg-indigo-700 px-3 py-2 rounded transition">
+                            <i class="fas fa-home mr-1"></i> Dashboard
+                        </a>
+                        <a href="/audios" class="hover:bg-indigo-700 px-3 py-2 rounded transition">
+                            <i class="fas fa-music mr-1"></i> Áudios
+                        </a>
+                        <a href="/playlists" class="hover:bg-indigo-700 px-3 py-2 rounded transition">
+                            <i class="fas fa-list mr-1"></i> Playlists
+                        </a>
+                    </div>
+                </div>
+
+                <div class="text-sm">
+                    v{{ version }}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <p>&copy; 2024 Cazalberto Bot | Desenvolvido por Daniel Gregorio</p>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

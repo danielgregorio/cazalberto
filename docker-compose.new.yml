@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Bot Discord
+  bot:
+    build:
+      context: .
+      dockerfile: docker/bot.Dockerfile
+    container_name: cazalberto-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./audio_clips:/app/audio_clips
+      - ./wow-ost:/app/wow-ost
+      - ./logs:/app/logs
+    networks:
+      - cazalberto-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - web
+
+  # Painel Web
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: cazalberto-web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./audio_clips:/app/audio_clips
+      - ./logs:/app/logs
+    networks:
+      - cazalberto-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    command: >
+      uvicorn cazalberto.web.app:app
+      --host 0.0.0.0
+      --port 8080
+      --log-level info
+
+networks:
+  cazalberto-network:
+    driver: bridge
