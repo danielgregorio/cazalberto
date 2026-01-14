@@ -1,14 +1,43 @@
-version: '3'
+version: '3.8'
 
 services:
   cazalberto:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: cazalberto-bot
+    restart: unless-stopped
+
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - WOW_OST_FOLDER=/app/wow-music
+      - RATE_LIMIT_COMMANDS=${RATE_LIMIT_COMMANDS:-5}
+      - RATE_LIMIT_SECONDS=${RATE_LIMIT_SECONDS:-10}
+
     volumes:
+      # Áudios aprendidos
       - ./audio_clips:/app/audio_clips
+      # Músicas do WoW (opcional)
       - ./wow-music:/app/wow-music
+      # Dados persistentes
       - ./commands.json:/app/commands.json
       - ./playlists.json:/app/playlists.json
-    restart: unless-stopped
+      - ./favorites.json:/app/favorites.json
+      - ./stats.json:/app/stats.json
+      # Logs
+      - ./bot.log:/app/bot.log
+
+    # Limites de recursos (opcional)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

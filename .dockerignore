@@ -1,5 +1,4 @@
-# Docker
-Dockerfile
+# Docker (não precisa copiar para dentro do container)
 docker-compose.yml
 .dockerignore
 
@@ -9,19 +8,28 @@ __pycache__/
 *$py.class
 venv/
 env/
+.venv/
 .env
+.env.local
 .python-version
 
 # Logs
 *.log
 
+# Data files (montados como volumes)
+commands.json
+commands_backup.json
+playlists.json
+favorites.json
+stats.json
+
 # Backup files
 backup*/
 *_backup*
 
-# Áudio files (opcional, comente essas linhas se quiser incluir áudios no build)
-# audio_clips/
-# wow-music/
+# Audio files (montados como volumes)
+audio_clips/
+wow-music/
 
 # IDE files
 .vscode/
@@ -38,6 +46,14 @@ Thumbs.db
 .git/
 .github/
 .gitignore
+
+# Scripts Windows
+*.bat
+
+# Documentation (exceto README)
+DOCKER.md
+CONTRIBUTING.md
+LICENSE
 
 # Misc
 commit-msg.txt

@@ -1,110 +1,173 @@
-# Dockerização do Cazalberto
+# Docker - Cazalberto v2.0.0
 
-Este documento detalha como executar o Cazalberto usando Docker.
+Guia completo para executar o Cazalberto usando Docker.
 
 ## Pré-requisitos
 
-- Docker instalado
-- Docker Compose instalado
+- Docker 20.10+
+- Docker Compose 2.0+
 - Token do bot Discord
+
+## Quick Start
+
+```bash
+# 1. Configure o token
+cp .env.example .env
+# Edite .env e adicione seu DISCORD_TOKEN
+
+# 2. Crie os arquivos de dados (se não existirem)
+touch commands.json playlists.json favorites.json stats.json bot.log
+echo "{}" > commands.json
+echo "{}" > playlists.json
+echo "{}" > favorites.json
+echo "{}" > stats.json
+
+# 3. Inicie o bot
+docker-compose up -d
+```
 
 ## Configuração
 
-1. Crie um arquivo `.env` na raiz do projeto com o token do seu bot:
+### Variáveis de Ambiente
 
-```
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+# Obrigatório
 DISCORD_TOKEN=seu_token_aqui
+
+# Opcional - Rate Limiting
+RATE_LIMIT_COMMANDS=5
+RATE_LIMIT_SECONDS=10
 ```
 
-2. Verifique se as pastas necessárias existem:
-   - `audio_clips` (para áudios personalizados)
-   - `wow-music` (para áudios do WoW)
+### Estrutura de Pastas
 
-## Executando com Docker Compose
+```
+cazalberto/
+├── .env                 # Configuração (criar)
+├── audio_clips/         # Áudios aprendidos (auto-criado)
+├── wow-music/           # Músicas do WoW (opcional)
+├── commands.json        # Banco de comandos
+├── playlists.json       # Playlists
+├── favorites.json       # Favoritos dos usuários
+├── stats.json           # Estatísticas de uso
+└── bot.log              # Logs
+```
 
-Para iniciar o bot:
+## Comandos Docker Compose
+
+### Operações básicas
 
 ```bash
+# Iniciar
 docker-compose up -d
-```
 
-Para visualizar os logs:
-
-```bash
-docker-compose logs -f
-```
-
-Para parar o bot:
-
-```bash
+# Parar
 docker-compose down
-```
 
-## Build e execução manual
-
-Se preferir construir e executar manualmente:
-
-1. Construa a imagem:
-
-```bash
-docker build -t cazalberto .
-```
-
-2. Execute o container:
-
-```bash
-docker run -d \
-  --name cazalberto-bot \
-  -e DISCORD_TOKEN=seu_token_aqui \
-  -v ./audio_clips:/app/audio_clips \
-  -v ./wow-music:/app/wow-music \
-  -v ./commands.json:/app/commands.json \
-  -v ./playlists.json:/app/playlists.json \
-  cazalberto
-```
-
-## Volumes
-
-Os seguintes volumes são usados para persistência:
-
-- `./audio_clips`: Armazena os arquivos de áudio personalizados
-- `./wow-music`: Armazena os arquivos de música do WoW
-- `./commands.json`: Configuração dos comandos
-- `./playlists.json`: Configuração das playlists
-
-## Comandos úteis
-
-### Reiniciar o bot
-
-```bash
+# Reiniciar
 docker-compose restart
+
+# Ver logs em tempo real
+docker-compose logs -f
+
+# Ver status
+docker-compose ps
 ```
 
-### Atualizar para uma nova versão
+### Atualização
 
 ```bash
+# Baixar nova versão e reconstruir
 git pull
 docker-compose down
-docker-compose build
+docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### Executar o comando de sincronização
+## Build Manual (sem Compose)
 
 ```bash
-docker exec -it cazalberto-bot python -c "from discord.ext import commands; bot = commands.Bot(command_prefix='!'); bot.tree.sync()"
+# Build da imagem
+docker build -t cazalberto:2.0.0 .
+
+# Executar
+docker run -d \
+  --name cazalberto-bot \
+  --restart unless-stopped \
+  -e DISCORD_TOKEN=seu_token \
+  -e WOW_OST_FOLDER=/app/wow-music \
+  -v $(pwd)/audio_clips:/app/audio_clips \
+  -v $(pwd)/wow-music:/app/wow-music \
+  -v $(pwd)/commands.json:/app/commands.json \
+  -v $(pwd)/playlists.json:/app/playlists.json \
+  -v $(pwd)/favorites.json:/app/favorites.json \
+  -v $(pwd)/stats.json:/app/stats.json \
+  -v $(pwd)/bot.log:/app/bot.log \
+  cazalberto:2.0.0
 ```
 
-## Resolução de problemas
+## Volumes e Persistência
 
-Se o bot não iniciar, verifique os logs:
+| Volume | Descrição |
+|--------|-----------|
+| `audio_clips/` | Áudios aprendidos pelo bot |
+| `wow-music/` | Músicas do World of Warcraft |
+| `commands.json` | Mapeamento nome -> arquivo |
+| `playlists.json` | Playlists criadas |
+| `favorites.json` | Favoritos por usuário |
+| `stats.json` | Contagem de reproduções |
+| `bot.log` | Logs de execução |
+
+## Recursos e Limites
+
+O docker-compose.yml configura:
+- **Memória máxima:** 512MB
+- **Memória reservada:** 128MB
+- **Logs:** máx 10MB, 3 arquivos
+
+Para ajustar, edite a seção `deploy.resources` no docker-compose.yml.
+
+## Troubleshooting
+
+### Bot não inicia
 
 ```bash
+# Verificar logs
 docker-compose logs
+
+# Verificar se o container está rodando
+docker-compose ps
 ```
 
-Certifique-se de que:
+### Erro de permissão nos volumes
 
-1. O token do Discord está correto
-2. Os volumes estão configurados corretamente
-3. As permissões dos arquivos são adequadas
+```bash
+# Linux/Mac: ajustar permissões
+sudo chown -R 1000:1000 audio_clips wow-music
+chmod 666 commands.json playlists.json favorites.json stats.json bot.log
+```
+
+### Token inválido
+
+1. Verifique se o `.env` existe e contém `DISCORD_TOKEN`
+2. Confirme que o token está correto no Discord Developer Portal
+3. Recrie o container: `docker-compose up -d --force-recreate`
+
+### Áudio não funciona
+
+- FFmpeg já está incluído na imagem Docker
+- Verifique se os arquivos de áudio existem nos volumes montados
+
+## Healthcheck
+
+O container inclui healthcheck automático:
+- Intervalo: 30 segundos
+- Timeout: 10 segundos
+- Retries: 3
+
+Para verificar:
+```bash
+docker inspect cazalberto-bot --format='{{.State.Health.Status}}'
+```
