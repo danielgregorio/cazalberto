@@ -9,36 +9,40 @@ import random
 from config import PLAYLISTS_FILE, COMMANDS_FILE
 from utils import load_json, save_json
 
+
 class PlaylistCommands(commands.Cog):
     """Comandos para gerenciar playlists de áudio."""
-    
+
     def __init__(self, bot):
         self.bot = bot
         self.custom_commands = load_json(COMMANDS_FILE)
         self.playlists = load_json(PLAYLISTS_FILE)
-    
+        # Controle de reprodução de playlist por servidor
+        self.playlist_playing: dict = {}
+
+    def _reload_commands(self):
+        """Recarrega os comandos do arquivo (para sincronização com audio_commands)."""
+        self.custom_commands = load_json(COMMANDS_FILE)
+
     @app_commands.command(name="criar_playlist", description="Cria uma nova playlist vazia.")
     @app_commands.describe(nome="Nome da playlist a ser criada")
     async def criar_playlist(self, ctx: discord.Interaction, nome: str):
         """Cria uma nova playlist vazia."""
         nome = nome.lower().strip()
-        
-        # Verifica se o nome é válido
+
         if not nome or len(nome) > 32:
-            await ctx.response.send_message("❌ O nome da playlist deve ter entre 1 e 32 caracteres.")
+            await ctx.response.send_message("O nome da playlist deve ter entre 1 e 32 caracteres.")
             return
-        
-        # Verifica se a playlist já existe
+
         if nome in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{nome}` já existe!")
+            await ctx.response.send_message(f"A playlist `{nome}` já existe!")
             return
-        
-        # Cria a nova playlist vazia
+
         self.playlists[nome] = []
         save_json(PLAYLISTS_FILE, self.playlists)
-        
-        await ctx.response.send_message(f"✅ Playlist `{nome}` criada com sucesso!")
-    
+
+        await ctx.response.send_message(f"Playlist `{nome}` criada com sucesso!")
+
     @app_commands.command(name="adicionar_playlist", description="Adiciona um áudio a uma playlist existente.")
     @app_commands.describe(
         playlist="Nome da playlist onde adicionar o áudio",
@@ -48,28 +52,27 @@ class PlaylistCommands(commands.Cog):
         """Adiciona um áudio a uma playlist existente."""
         playlist = playlist.lower().strip()
         audio = audio.lower().strip()
-        
-        # Verifica se a playlist existe
+
         if playlist not in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{playlist}` não existe! Use `/criar_playlist` para criar.")
+            await ctx.response.send_message(f"A playlist `{playlist}` não existe! Use `/criar_playlist` para criar.")
             return
-        
-        # Verifica se o áudio existe
+
+        # Recarrega comandos para garantir sincronização
+        self._reload_commands()
+
         if audio not in self.custom_commands:
-            await ctx.response.send_message(f"❌ O áudio `{audio}` não existe! Use `/aprendido` para ver a lista de áudios.")
+            await ctx.response.send_message(f"O áudio `{audio}` não existe! Use `/aprendido` para ver a lista.")
             return
-        
-        # Verifica se o áudio já está na playlist
+
         if audio in self.playlists[playlist]:
-            await ctx.response.send_message(f"❌ O áudio `{audio}` já está na playlist `{playlist}`.")
+            await ctx.response.send_message(f"O áudio `{audio}` já está na playlist `{playlist}`.")
             return
-        
-        # Adiciona o áudio à playlist
+
         self.playlists[playlist].append(audio)
         save_json(PLAYLISTS_FILE, self.playlists)
-        
-        await ctx.response.send_message(f"✅ Áudio `{audio}` adicionado à playlist `{playlist}`!")
-    
+
+        await ctx.response.send_message(f"Áudio `{audio}` adicionado à playlist `{playlist}`!")
+
     @app_commands.command(name="remover_playlist", description="Remove um áudio de uma playlist.")
     @app_commands.describe(
         playlist="Nome da playlist de onde remover o áudio",
@@ -79,168 +82,182 @@ class PlaylistCommands(commands.Cog):
         """Remove um áudio de uma playlist."""
         playlist = playlist.lower().strip()
         audio = audio.lower().strip()
-        
-        # Verifica se a playlist existe
+
         if playlist not in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{playlist}` não existe!")
+            await ctx.response.send_message(f"A playlist `{playlist}` não existe!")
             return
-        
-        # Verifica se o áudio está na playlist
+
         if audio not in self.playlists[playlist]:
-            await ctx.response.send_message(f"❌ O áudio `{audio}` não está na playlist `{playlist}`.")
+            await ctx.response.send_message(f"O áudio `{audio}` não está na playlist `{playlist}`.")
             return
-        
-        # Remove o áudio da playlist
+
         self.playlists[playlist].remove(audio)
         save_json(PLAYLISTS_FILE, self.playlists)
-        
-        await ctx.response.send_message(f"✅ Áudio `{audio}` removido da playlist `{playlist}`!")
-    
+
+        await ctx.response.send_message(f"Áudio `{audio}` removido da playlist `{playlist}`!")
+
     @app_commands.command(name="ver_playlist", description="Mostra os áudios em uma playlist.")
     @app_commands.describe(playlist="Nome da playlist para visualizar")
     async def ver_playlist(self, ctx: discord.Interaction, playlist: str):
         """Mostra os áudios em uma playlist específica."""
         playlist = playlist.lower().strip()
-        
-        # Verifica se a playlist existe
+
         if playlist not in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{playlist}` não existe!")
+            await ctx.response.send_message(f"A playlist `{playlist}` não existe!")
             return
-        
-        # Verifica se a playlist está vazia
+
         if not self.playlists[playlist]:
-            await ctx.response.send_message(f"📂 A playlist `{playlist}` está vazia.")
+            await ctx.response.send_message(f"A playlist `{playlist}` está vazia.")
             return
-        
-        # Lista os áudios da playlist
+
         audio_list = "\n".join([f"{i+1}. {audio}" for i, audio in enumerate(self.playlists[playlist])])
-        await ctx.response.send_message(f"🎵 Playlist: `{playlist}` ({len(self.playlists[playlist])} áudios)\n\n{audio_list}")
-    
+        await ctx.response.send_message(f"Playlist: `{playlist}` ({len(self.playlists[playlist])} áudios)\n\n{audio_list}")
+
     @app_commands.command(name="listar_playlists", description="Lista todas as playlists disponíveis.")
     async def listar_playlists(self, ctx: discord.Interaction):
         """Lista todas as playlists disponíveis."""
-        # Verifica se existem playlists
         if not self.playlists:
-            await ctx.response.send_message("📂 Não há playlists criadas ainda.")
+            await ctx.response.send_message("Não há playlists criadas ainda.")
             return
-        
-        # Lista todas as playlists e seus tamanhos
-        playlist_info = "\n".join([f"• `{name}`: {len(items)} áudios" for name, items in self.playlists.items()])
-        await ctx.response.send_message(f"📋 Playlists disponíveis ({len(self.playlists)}):\n\n{playlist_info}")
-    
+
+        playlist_info = "\n".join([f"  `{name}`: {len(items)} áudios" for name, items in self.playlists.items()])
+        await ctx.response.send_message(f"Playlists disponíveis ({len(self.playlists)}):\n\n{playlist_info}")
+
     @app_commands.command(name="excluir_playlist", description="Exclui uma playlist existente.")
     @app_commands.describe(playlist="Nome da playlist a ser excluída")
     async def excluir_playlist(self, ctx: discord.Interaction, playlist: str):
         """Exclui uma playlist existente."""
         playlist = playlist.lower().strip()
-        
-        # Verifica se a playlist existe
+
         if playlist not in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{playlist}` não existe!")
+            await ctx.response.send_message(f"A playlist `{playlist}` não existe!")
             return
-        
-        # Remove a playlist
+
         del self.playlists[playlist]
         save_json(PLAYLISTS_FILE, self.playlists)
-        
-        await ctx.response.send_message(f"🗑️ Playlist `{playlist}` excluída com sucesso!")
-    
+
+        await ctx.response.send_message(f"Playlist `{playlist}` excluída com sucesso!")
+
     @app_commands.command(name="tocar_playlist", description="Toca todos os áudios de uma playlist em sequência.")
     @app_commands.describe(
         playlist="Nome da playlist a ser tocada",
-        repetir="Número de vezes para repetir a playlist (opcional)",
-        aleatorio="Tocar em ordem aleatória (opcional)"
+        repetir="Número de vezes para repetir a playlist (1-5)",
+        aleatorio="Tocar em ordem aleatória"
     )
     async def tocar_playlist(
         self,
-        ctx: discord.Interaction, 
-        playlist: str, 
+        ctx: discord.Interaction,
+        playlist: str,
         repetir: int = 1,
         aleatorio: bool = False
     ):
         """Toca todos os áudios de uma playlist em sequência."""
         playlist = playlist.lower().strip()
-        
-        # Limita o número de repetições para evitar spam
+
         repetir = max(1, min(5, repetir))
-        
-        # Verifica se a playlist existe
+
         if playlist not in self.playlists:
-            await ctx.response.send_message(f"❌ A playlist `{playlist}` não existe!")
+            await ctx.response.send_message(f"A playlist `{playlist}` não existe!")
             return
-        
-        # Verifica se a playlist está vazia
+
         if not self.playlists[playlist]:
-            await ctx.response.send_message(f"📂 A playlist `{playlist}` está vazia.")
+            await ctx.response.send_message(f"A playlist `{playlist}` está vazia.")
             return
-        
-        # Verifica se o usuário está em um canal de voz
+
         if not ctx.user.voice:
-            await ctx.response.send_message("❌ Você precisa estar em um canal de voz!")
+            await ctx.response.send_message("Você precisa estar em um canal de voz!")
             return
-        
+
+        # Recarrega comandos
+        self._reload_commands()
+
         # Conecta ao canal de voz
-        vc = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-        if not vc or not vc.is_connected():
-            vc = await ctx.user.voice.channel.connect()
-        
-        # Responde inicialmente
+        try:
+            vc = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+            if not vc or not vc.is_connected():
+                vc = await ctx.user.voice.channel.connect()
+        except discord.errors.ClientException as e:
+            await ctx.response.send_message(f"Erro ao conectar ao canal de voz: {e}")
+            return
+
+        guild_id = ctx.guild.id
+        self.playlist_playing[guild_id] = True
+
         await ctx.response.send_message(
-            f"🎵 Tocando playlist `{playlist}` "
+            f"Tocando playlist `{playlist}` "
             f"({'ordem aleatória' if aleatorio else 'sequencial'})"
             f"{f', {repetir} vezes' if repetir > 1 else ''}"
         )
-        
-        # Função para reproduzir a playlist
+
         async def play_playlist_items():
-            # Lista de áudios a serem tocados
             audios_to_play = self.playlists[playlist].copy()
-            
-            for _ in range(repetir):
-                # Embaralha se for aleatório
+
+            for rep in range(repetir):
+                if not self.playlist_playing.get(guild_id, False):
+                    break
+
                 if aleatorio:
                     random.shuffle(audios_to_play)
-                
+
                 for audio in audios_to_play:
-                    # Verifica se o áudio ainda existe
+                    if not self.playlist_playing.get(guild_id, False):
+                        break
+
                     if audio in self.custom_commands:
                         audio_path = self.custom_commands[audio]
-                        
-                        # Verifica se ainda está conectado
+
+                        if not os.path.exists(audio_path):
+                            logging.warning(f"Arquivo não encontrado: {audio_path}")
+                            continue
+
                         if not vc.is_connected():
                             return
-                        
-                        # Para qualquer áudio atual e toca o próximo
+
                         if vc.is_playing():
                             vc.stop()
-                        
-                        # Toca o áudio e aguarda
-                        vc.play(discord.FFmpegPCMAudio(audio_path))
-                        
-                        # Envia mensagem informando o áudio atual
+
                         try:
-                            await ctx.followup.send(f"🎵 Tocando: `{audio}` da playlist `{playlist}`")
-                        except:
-                            pass  # Ignora erros de mensagem
-                        
-                        # Pequena pausa antes de verificar se o áudio ainda está tocando
+                            source = discord.FFmpegPCMAudio(audio_path)
+                            source = discord.PCMVolumeTransformer(source, volume=1.0)
+                            vc.play(source)
+
+                            await ctx.followup.send(f"Tocando: `{audio}` da playlist `{playlist}`")
+                        except discord.errors.ClientException as e:
+                            logging.error(f"Erro ao tocar {audio}: {e}")
+                            continue
+
                         await asyncio.sleep(1)
-                        
-                        # Espera até que o áudio termine
-                        while vc.is_playing():
+
+                        while vc.is_playing() and self.playlist_playing.get(guild_id, False):
                             await asyncio.sleep(0.5)
-                        
-                        # Pequena pausa entre áudios
-                        await asyncio.sleep(1)
-            
-            # Envia mensagem quando terminar
+
+                        await asyncio.sleep(0.5)
+
+            self.playlist_playing[guild_id] = False
+
             try:
-                await ctx.followup.send(f"✅ Reprodução da playlist `{playlist}` concluída!")
-            except:
-                pass  # Ignora erros de mensagem
-        
-        # Inicia a reprodução em segundo plano
+                await ctx.followup.send(f"Reprodução da playlist `{playlist}` concluída!")
+            except discord.errors.HTTPException:
+                pass
+
         asyncio.create_task(play_playlist_items())
+
+    @app_commands.command(name="parar_playlist", description="Para a reprodução da playlist atual.")
+    async def parar_playlist(self, ctx: discord.Interaction):
+        """Para a reprodução da playlist atual."""
+        guild_id = ctx.guild.id
+
+        if guild_id in self.playlist_playing and self.playlist_playing[guild_id]:
+            self.playlist_playing[guild_id] = False
+
+            vc = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+            if vc and vc.is_playing():
+                vc.stop()
+
+            await ctx.response.send_message("Reprodução da playlist parada!")
+        else:
+            await ctx.response.send_message("Nenhuma playlist está sendo reproduzida.")
+
 
 async def setup(bot):
     """Adiciona o cog ao bot."""
