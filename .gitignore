@@ -1,29 +1,41 @@
-# Python virtual environment
+# Ambiente virtual e segredos
 venv/
+.venv/
 env/
 .env
 
-# Cache and compiled files
+# Cache e arquivos compilados
 __pycache__/
 *.py[cod]
-*$py.class
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
 
 # Logs
 *.log
+*.log.*
 
-# Audio clips (optional, depends if you want to track audio files)
+# Áudios (ficam só na máquina de quem roda o bot)
 audio_clips/
+wow-music/
 
-# IDE and editor files
+# Arquivos temporários do bot
+data/*.tmp
+data/.*.tmp
+data/*.corrupted
+*.part
+
+# IDE e editores
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated files
+# Sistema operacional
 .DS_Store
 Thumbs.db
 
-# Deprecated folder
+# Pasta antiga
 deprecated/
-deprecated/*

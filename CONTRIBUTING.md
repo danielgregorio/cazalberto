@@ -15,36 +15,30 @@ Obrigado pelo seu interesse em contribuir para o Cazalberto! Este documento forn
 
 ## Estrutura de pastas
 
-Por favor, respeite a estrutura de pastas existente:
+O código fica no pacote `cazalberto/` (veja a seção "Estrutura" do [README](README.md)):
 
+- **Regras e dados** ficam em `audio/`, `playlists.py` e `storage.py`, sem depender do Discord, para poderem ser testados.
+- **Comandos** ficam em `cogs/` e só fazem a ponte entre o Discord e esses serviços.
+- **Erros esperados** (entrada inválida, áudio que não existe) são levantados como `UserError("mensagem")`.
+  O bot mostra a mensagem ao usuário; qualquer outro erro vai para o log.
+
+## Ambiente de desenvolvimento
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+ruff check .
+ruff format .
 ```
-cazalberto/
-├── bot.py                # Arquivo principal para iniciar o bot
-├── config.py             # Configurações globais
-├── utils.py              # Funções utilitárias
-├── cogs/                 # Módulos de comandos organizados por categoria
-│   ├── audio_commands.py
-│   ├── playlist_commands.py
-│   ├── wow_commands.py
-│   └── misc_commands.py
-├── data/                 # Pasta para armazenar dados
-└── audio_clips/          # Pasta onde os áudios são armazenados
-```
 
-## Guidelines de código
-
-- Siga as convenções PEP 8 para código Python
-- Use docstrings para documentar funções, classes e métodos
-- Escreva mensagens de commit claras e descritivas
-- Adicione comentários quando necessário para explicar trechos complexos
+A CI roda esses mesmos comandos em todo pull request.
 
 ## Adicionando novos comandos
 
-Para adicionar um novo comando:
-
-1. Adicione o comando ao cog apropriado, ou crie um novo cog se necessário
-2. Documente o comando no arquivo README.md
-3. Teste o comando antes de enviar
+1. Coloque o comando no cog certo em `cazalberto/cogs/`, ou crie um cog novo e inclua-o em `EXTENSIONS` (`cazalberto/bot.py`).
+2. Se tiver lógica que não depende do Discord, coloque-a num módulo à parte e escreva testes em `tests/`.
+3. Atualize a tabela de comandos do README. O `/ajuda` é gerado automaticamente.
+4. Depois de mudar comandos slash, rode `!sync aqui` (ou `python -m cazalberto --sync`).
 
 ## Reportando bugs
 

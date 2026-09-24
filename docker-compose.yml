@@ -1,14 +1,17 @@
-version: '3'
-
 services:
   cazalberto:
     build: .
     container_name: cazalberto-bot
+    env_file: .env
     environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      # Caminhos dentro do container (não mude); as pastas do seu computador ficam nos volumes.
+      DATA_DIR: /app/data
+      AUDIO_DIR: /app/audio_clips
+      WOW_OST_DIR: /app/wow-ost
+      LOG_FILE: ""
     volumes:
+      - ./data:/app/data
       - ./audio_clips:/app/audio_clips
-      - ./wow-music:/app/wow-music
-      - ./commands.json:/app/commands.json
-      - ./playlists.json:/app/playlists.json
+      # Pasta das trilhas do WoW no seu computador (opcional). Defina WOW_OST_HOST_DIR no .env.
+      - ${WOW_OST_HOST_DIR:-./wow-music}:/app/wow-ost:ro
     restart: unless-stopped
