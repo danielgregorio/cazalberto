@@ -14,17 +14,14 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
-REM Caminhos específicos para sua instalação
-set BOT_DIR=C:\Users\Daniel\OneDrive\Projetos\cazalberto\
-set BOT_SCRIPT=%BOT_DIR%bot.py
+REM Usa a pasta onde este script está
+set BOT_DIR=%~dp0
 
 echo Diretório do Bot: %BOT_DIR%
-echo Script do Bot: %BOT_SCRIPT%
 
 echo Criando tarefa agendada para iniciar o Cazalberto na inicialização...
 
-REM Usando py em vez do caminho completo para python
-schtasks /create /tn "CazalbertoBot" /tr "cmd /c cd /d %BOT_DIR% && python bot.py" /sc onstart /ru SYSTEM /f
+schtasks /create /tn "CazalbertoBot" /tr "cmd /c cd /d %BOT_DIR% && python -m cazalberto" /sc onstart /ru SYSTEM /f
 
 if %errorLevel% neq 0 (
     echo ERRO: Não foi possível criar a tarefa agendada.
@@ -37,7 +34,7 @@ if %errorLevel% neq 0 (
     echo Iniciando o bot agora...
     
     REM Inicia o bot em uma nova janela
-    start cmd /c "cd /d %BOT_DIR% && python bot.py"
+    start cmd /c "cd /d %BOT_DIR% && python -m cazalberto"
     
     echo.
     echo Concluído!
